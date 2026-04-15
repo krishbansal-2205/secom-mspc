@@ -42,8 +42,34 @@ class CombinedMSPCSystem:
         os.makedirs(self.fig_dir, exist_ok=True)
 
     # =================================================================
+    def attach(
+        self, t2_chart: HotellingT2Chart, mewma_chart: MEWMAChart
+    ) -> "CombinedMSPCSystem":
+        """Attach pre-fitted T² and MEWMA charts.
+
+        Use this instead of :meth:`fit` when the individual charts have
+        already been fitted in earlier pipeline stages, so the combined
+        system reuses the exact same parameters and UCLs.
+
+        Args:
+            t2_chart: Already-fitted :class:`HotellingT2Chart`.
+            mewma_chart: Already-fitted :class:`MEWMAChart`.
+
+        Returns:
+            ``self``.
+        """
+        self.t2_chart = t2_chart
+        self.mewma_chart = mewma_chart
+        print("\n  ✓ Combined MSPC system attached pre-fitted T² and MEWMA charts.")
+        return self
+
+    # =================================================================
     def fit(self, X_phase1: np.ndarray) -> "CombinedMSPCSystem":
         """Fit both T² and MEWMA charts on Phase I data.
+
+        This is a convenience method for standalone use.  When running
+        the full pipeline, prefer :meth:`attach` to reuse charts that
+        were already fitted in Phase 7 / Phase 8.
 
         Args:
             X_phase1: In-control score matrix (m × p).
@@ -51,8 +77,8 @@ class CombinedMSPCSystem:
         Returns:
             ``self``.
         """
-        self.t2_chart.fit_phase1(X_phase1, alpha=self.cfg.alpha)
-        self.mewma_chart.fit(X_phase1, alpha=self.cfg.alpha)
+        self.t2_chart.fit_phase1(X_phase1)
+        self.mewma_chart.fit(X_phase1)
         print("\n  ✓ Combined MSPC system fitted.")
         return self
 

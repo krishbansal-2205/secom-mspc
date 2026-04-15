@@ -14,6 +14,8 @@ from typing import Dict, Optional, Tuple
 import joblib
 import numpy as np
 import pandas as pd
+from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline
 from sklearn.ensemble import (
     GradientBoostingClassifier,
     RandomForestClassifier,
@@ -22,6 +24,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import (
     RandomizedSearchCV,
     StratifiedKFold,
+    TimeSeriesSplit,
     cross_validate,
 )
 from sklearn.svm import SVC
@@ -76,6 +79,10 @@ class SECOMModelTrainer:
 
         handler = ImbalanceHandler(self.cfg)
         X_train_smote, y_train_smote = handler.fit_resample(X_train, y_train)
+
+        # Store original class counts for downstream use (e.g. scale_pos_weight)
+        self._n_pass_original = int((y_train == 0).sum())
+        self._n_fail_original = int((y_train == 1).sum())
 
         return {
             "X_train": X_train,
@@ -143,8 +150,10 @@ class SECOMModelTrainer:
         try:
             from xgboost import XGBClassifier
 
-            n_fail = int((y_train == 1).sum())
-            n_pass = int((y_train == 0).sum())
+            # scale_pos_weight should reflect the ORIGINAL class imbalance,
+            # not the SMOTE-balanced counts (which would give spw ≈ 1.0).
+            n_pass = getattr(self, "_n_pass_original", int((y_train == 0).sum()))
+            n_fail = getattr(self, "_n_fail_original", int((y_train == 1).sum()))
             spw = n_pass / max(n_fail, 1)
             model_defs["XGBoost"] = XGBClassifier(
                 n_estimators=200,
@@ -192,18 +201,19 @@ class SECOMModelTrainer:
             DataFrame of CV scores.
         """
         print("\n── Cross-Validation ──")
-        cv = StratifiedKFold(
-            n_splits=self.cfg.cv_folds,
-            shuffle=True,
-            random_state=self.cfg.random_seed,
-        )
+        cv = TimeSeriesSplit(n_splits=self.cfg.cv_folds)
         scoring = ["roc_auc", "f1", "recall", "precision"]
 
         records = []
         for name, model in models.items():
+            # Build an imblearn pipeline to prevent data leakage during CV folds
+            pipeline = Pipeline([
+                ("smote", SMOTE(random_state=self.cfg.random_seed)),
+                ("classifier", model)
+            ])
             try:
                 res = cross_validate(
-                    model, X_train, y_train, cv=cv,
+                    pipeline, X_train, y_train, cv=cv,
                     scoring=scoring, n_jobs=-1,
                 )
                 rec = {"model": name}
@@ -243,7 +253,10 @@ class SECOMModelTrainer:
             Best estimator from the search.
         """
         print("\n── Hyperparameter Tuning ──")
-        model_type = type(model).__name__
+        
+        is_pipeline = hasattr(model, "steps")
+        base_est = model.steps[-1][1] if is_pipeline else model
+        model_type = type(base_est).__name__
 
         if "RandomForest" in model_type:
             param_dist = {
@@ -262,12 +275,29 @@ class SECOMModelTrainer:
         else:
             param_dist = {"C": [0.01, 0.1, 1, 10]}
 
-        cv = StratifiedKFold(n_splits=self.cfg.cv_folds, shuffle=True,
-                             random_state=self.cfg.random_seed)
+        cv = TimeSeriesSplit(n_splits=self.cfg.cv_folds)
+
+        if not is_pipeline:
+            # Wrap in SMOTE to prevent internal CV leakage
+            search_model = Pipeline([
+                ("smote", SMOTE(random_state=self.cfg.random_seed)),
+                ("classifier", base_est)
+            ])
+            param_dist = {f"classifier__{k}": v for k, v in param_dist.items()}
+        else:
+            search_model = model
+            param_dist = {f"classifier__{k}": v for k, v in param_dist.items()}
+        # Cap n_iter at the actual number of parameter combinations
+        # to avoid wasteful duplicate evaluations in small grids.
+        import functools, operator
+        total_combos = functools.reduce(
+            operator.mul, (len(v) for v in param_dist.values()), 1
+        )
+        n_iter = min(50, total_combos)
         search = RandomizedSearchCV(
-            model,
+            search_model,
             param_distributions=param_dist,
-            n_iter=min(50, len(param_dist) * 10),
+            n_iter=n_iter,
             scoring=self.cfg.scoring_metric,
             cv=cv,
             random_state=self.cfg.random_seed,

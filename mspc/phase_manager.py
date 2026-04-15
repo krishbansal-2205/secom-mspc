@@ -71,8 +71,20 @@ class PhaseManager:
         n_phase1 = int(self.cfg.phase1_ratio * len(pass_idx))
         phase1_idx = pass_idx[:n_phase1]
 
-        # Phase II = everything else
-        phase2_idx = np.sort(np.concatenate([pass_idx[n_phase1:], fail_idx]))
+        # Strict temporal cutpoint: find the timestamp of the last Phase I
+        # observation.  ALL Phase II observations must come AFTER this time
+        # so that no monitored sample precedes the baseline window.
+        ts_cutpoint = pd.Timestamp(ts_arr[phase1_idx[-1]])
+        all_remaining = np.sort(np.concatenate([pass_idx[n_phase1:], fail_idx]))
+        phase2_idx = np.array(
+            [i for i in all_remaining if pd.Timestamp(ts_arr[i]) > ts_cutpoint],
+            dtype=int,
+        )
+
+        n_excluded = len(all_remaining) - len(phase2_idx)
+        if n_excluded > 0:
+            print(f"  ⚠ Excluded {n_excluded} observations from Phase II that "
+                  f"predate the Phase I cutpoint ({ts_cutpoint}).")
 
         # Validate
         self.validate_phase_separation(phase1_idx, phase2_idx, y_arr, timestamps)

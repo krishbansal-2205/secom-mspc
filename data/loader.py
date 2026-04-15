@@ -148,7 +148,15 @@ class SECOMDataLoader:
             )
 
         # Recode: -1→0 (Pass), +1→1 (Fail)
-        labels_df["label"] = labels_df["label"].map({-1: 0, 1: 1}).astype(int)
+        mapped = labels_df["label"].map({-1: 0, 1: 1})
+        n_unmapped = int(mapped.isna().sum())
+        if n_unmapped > 0:
+            bad_vals = labels_df.loc[mapped.isna(), "label"].unique().tolist()
+            raise ValueError(
+                f"{n_unmapped} label(s) could not be mapped. "
+                f"Expected -1 or 1, but found: {bad_vals}"
+            )
+        labels_df["label"] = mapped.astype(int)
 
         y = labels_df["label"]
         timestamps = labels_df["timestamp"]

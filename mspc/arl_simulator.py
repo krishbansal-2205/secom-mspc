@@ -72,38 +72,49 @@ class ARLSimulator:
             print(f"\n  Shift = {delta}σ …", end=" ")
 
             # ── T² ARL ──────────────────────────────────────────────
-            t2_rls = np.zeros(n_sim, dtype=int)
+            t2_rls = np.ones(n_sim, dtype=int) * max_rl
+            active_t2 = np.ones(n_sim, dtype=bool)
             ucl_t2 = t2_chart.ucl_phase2_F
-            for s in range(n_sim):
-                for rl in range(1, max_rl + 1):
-                    x = L @ rng.randn(p) + t2_chart.mean_vector + mu_shift
-                    diff = x - t2_chart.mean_vector  # subtract Phase I mean
-                    t2_val = float(diff @ t2_chart.cov_inv @ diff)
-                    if t2_val > ucl_t2:
-                        t2_rls[s] = rl
-                        break
-                else:
-                    t2_rls[s] = max_rl
+            
+            for rl in range(1, max_rl + 1):
+                if not np.any(active_t2):
+                    break
+                n_active = active_t2.sum()
+                diff = rng.randn(n_active, p) @ L.T + mu_shift
+                t2_val = np.einsum('ij,jk,ik->i', diff, t2_chart.cov_inv, diff)
+                signal = t2_val > ucl_t2
+                
+                if np.any(signal):
+                    signaled_idx = np.where(active_t2)[0][signal]
+                    t2_rls[signaled_idx] = rl
+                    active_t2[signaled_idx] = False
 
             # ── MEWMA ARL ───────────────────────────────────────────
-            mewma_rls = np.zeros(n_sim, dtype=int)
+            mewma_rls = np.ones(n_sim, dtype=int) * max_rl
+            active_mewma = np.ones(n_sim, dtype=bool)
+            Z = np.zeros((n_sim, p))
             ucl_mewma = mewma_chart.ucl_asymptotic
             lam = mewma_chart.lam
-            for s in range(n_sim):
-                Z_prev = np.zeros(p)
-                for rl in range(1, max_rl + 1):
-                    x = L @ rng.randn(p) + mewma_chart.mean_vector + mu_shift
-                    deviation = x - mewma_chart.mean_vector
-                    Z_curr = lam * deviation + (1 - lam) * Z_prev
-                    factor = (lam / (2 - lam)) * (1 - (1 - lam) ** (2 * rl))
-                    inv_factor = 1.0 / max(factor, 1e-15)
-                    t2_m = float(inv_factor * Z_curr @ mewma_chart.cov_inv @ Z_curr)
-                    if t2_m > ucl_mewma:
-                        mewma_rls[s] = rl
-                        break
-                    Z_prev = Z_curr.copy()
-                else:
-                    mewma_rls[s] = max_rl
+            
+            for rl in range(1, max_rl + 1):
+                if not np.any(active_mewma):
+                    break
+                n_active = active_mewma.sum()
+                deviation = rng.randn(n_active, p) @ L.T + mu_shift
+                
+                Z[active_mewma] = lam * deviation + (1 - lam) * Z[active_mewma]
+                
+                factor = (lam / (2 - lam)) * (1 - (1 - lam) ** (2 * rl))
+                inv_factor = 1.0 / max(factor, 1e-15)
+                
+                Z_active = Z[active_mewma]
+                t2_m = inv_factor * np.einsum('ij,jk,ik->i', Z_active, mewma_chart.cov_inv, Z_active)
+                
+                signal = t2_m > ucl_mewma
+                if np.any(signal):
+                    signaled_idx = np.where(active_mewma)[0][signal]
+                    mewma_rls[signaled_idx] = rl
+                    active_mewma[signaled_idx] = False
 
             records.append({
                 "shift_sigma": delta,

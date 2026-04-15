@@ -187,9 +187,13 @@ class SECOMCleaner:
         Raises:
             AssertionError: If any NaN remains after imputation.
         """
+        # 1. Forward-fill and backward-fill to preserve temporal sequences
+        X_seq = X.ffill().bfill()
+        
+        # 2. Fallback to median imputation for any entirely missing columns
         self.imputer = SimpleImputer(strategy=self.cfg.imputation_strategy)
         self._imputer_feature_names = list(X.columns)
-        arr = self.imputer.fit_transform(X)
+        arr = self.imputer.fit_transform(X_seq)
         X_out = pd.DataFrame(arr, columns=X.columns, index=X.index)
         assert X_out.isna().sum().sum() == 0, "NaN survived imputation!"
         return X_out
@@ -367,6 +371,11 @@ class SECOMCleaner:
             for c in expected:
                 if c in X_new.columns:
                     X_aligned[c] = X_new[c].values
+            
+            # Forward-fill only (no bfill) to avoid look-ahead in online monitoring;
+            # the fitted median imputer handles any remaining NaNs at the start
+            X_aligned = X_aligned.ffill()
+            
             arr = self.imputer.transform(X_aligned)
             X_new = pd.DataFrame(arr, columns=expected, index=X_new.index)
 
@@ -379,6 +388,16 @@ class SECOMCleaner:
         # 5. drop correlated features
         keep = [c for c in X_new.columns if c not in self.dropped_correlated_features]
         X_new = X_new[keep]
+
+        # 5b. align columns to exactly what the scaler expects
+        if self.retained_features:
+            missing_cols = set(self.retained_features) - set(X_new.columns)
+            if missing_cols:
+                raise ValueError(
+                    f"Transform input is missing {len(missing_cols)} features "
+                    f"expected by the fitted pipeline: {sorted(missing_cols)[:5]}"
+                )
+            X_new = X_new[self.retained_features]
 
         # 6. scale
         if self.scaler is not None:

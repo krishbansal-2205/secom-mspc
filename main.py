@@ -168,12 +168,19 @@ def run_pipeline(
     print("\n" + "=" * 60)
     print("  PHASE 3 – PREPROCESSING")
     print("=" * 60)
-    from preprocessing.cleaner import SECOMCleaner
 
-    cleaner = SECOMCleaner()
-    X_processed = cleaner.fit_transform(X.copy(), y)
-    cleaner.save(os.path.join(config.models_dir, "cleaner.pkl"))
-    all_results["preprocessing_report"] = cleaner.get_preprocessing_report()
+    processed_path = os.path.join(config.processed_data_dir, "secom_processed")
+    if skip_if_processed and os.path.isfile(processed_path + "_X.parquet"):
+        print("  Using cached processed data …")
+        X_processed, y = loader.load_processed(processed_path)
+    else:
+        from preprocessing.cleaner import SECOMCleaner
+
+        cleaner = SECOMCleaner()
+        X_processed = cleaner.fit_transform(X.copy(), y)
+        cleaner.save(os.path.join(config.models_dir, "cleaner.pkl"))
+        all_results["preprocessing_report"] = cleaner.get_preprocessing_report()
+        loader.save_processed(X_processed, y, processed_path)
     logger.info(f"Preprocessing complete: {X.shape} → {X_processed.shape}")
 
     # ── Phase 4: EDA ─────────────────────────────────────────────────
@@ -265,7 +272,9 @@ def run_pipeline(
         from mspc.combined_mspc import CombinedMSPCSystem
 
         combined = CombinedMSPCSystem()
-        combined.fit(phases["X_phase1"])
+        # Reuse the already-fitted charts from Phase 7 / Phase 8 so that
+        # the combined system reports the exact same UCLs and parameters.
+        combined.attach(t2_chart, mewma)
         results_df = combined.monitor(phases["X_phase2"], phases["y_phase2"])
         mspc_perf = combined.generate_performance_report(
             results_df, phases["y_phase2"]

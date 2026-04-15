@@ -1,0 +1,38 @@
+{
+  "T2": {
+    "TP": 22,
+    "TN": 337,
+    "FP": 249,
+    "FN": 82,
+    "sensitivity": 0.2115,
+    "specificity": 0.5751,
+    "precision": 0.0812,
+    "f1": 0.1173,
+    "false_alarm_rate": 0.4249,
+    "auc_roc": 0.269
+  },
+  "MEWMA": {
+    "TP": 104,
+    "TN": 0,
+    "FP": 586,
+    "FN": 0,
+    "sensitivity": 1.0,
+    "specificity": 0.0,
+    "precision": 0.1507,
+    "f1": 0.262,
+    "false_alarm_rate": 1.0,
+    "auc_roc": 0.1357
+  },
+  "Combined": {
+    "TP": 104,
+    "TN": 0,
+    "FP": 586,
+    "FN": 0,
+    "sensitivity": 1.0,
+    "specificity": 0.0,
+    "precision": 0.1507,
+    "f1": 0.262,
+    "false_alarm_rate": 1.0,
+    "auc_roc": 0.269
+  }
+}

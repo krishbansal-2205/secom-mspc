@@ -75,7 +75,7 @@ class PhaseManager:
         phase2_idx = np.sort(np.concatenate([pass_idx[n_phase1:], fail_idx]))
 
         # Validate
-        self.validate_phase_separation(phase1_idx, phase2_idx, y_arr)
+        self.validate_phase_separation(phase1_idx, phase2_idx, y_arr, timestamps)
 
         # Build output
         phases: Dict = {
@@ -123,6 +123,7 @@ class PhaseManager:
         phase1_indices: np.ndarray,
         phase2_indices: np.ndarray,
         y: np.ndarray,
+        timestamps: Optional[pd.Series] = None,
     ) -> bool:
         """Assert that phase splitting satisfies all SPC constraints.
 
@@ -130,6 +131,7 @@ class PhaseManager:
             phase1_indices: Index array for Phase I.
             phase2_indices: Index array for Phase II.
             y: Full label array.
+            timestamps: Optional datetime series for temporal validation.
 
         Returns:
             ``True`` if all checks pass.
@@ -157,15 +159,25 @@ class PhaseManager:
                 f"{len(missing_fail)} Fail samples missing from Phase II"
             )
 
-        # Temporal ordering – warn if Phase II starts before Phase I ends
-        phase1_max_idx = int(phase1_indices.max())
-        phase2_min_idx = int(phase2_indices.min())
-        if phase2_min_idx < phase1_max_idx:
-            print(f"  ⚠ Temporal overlap: Phase II min index ({phase2_min_idx}) "
-                  f"< Phase I max index ({phase1_max_idx}). "
-                  f"Some Phase II observations precede Phase I observations in time.")
+        # Temporal ordering
+        if timestamps is not None:
+            ts_arr = np.asarray(timestamps)
+            ts1_max = pd.Timestamp(ts_arr[phase1_indices].max())
+            ts2_min = pd.Timestamp(ts_arr[phase2_indices].min())
+            if ts2_min < ts1_max:
+                print(f"  ⚠ Temporal overlap: Phase II min time ({ts2_min}) "
+                      f"< Phase I max time ({ts1_max}). "
+                      f"Some Phase II observations precede Phase I observations in time.")
+            else:
+                print("  ✓ Temporal ordering: Phase I fully precedes Phase II based on timestamps")
         else:
-            print("  ✓ Temporal ordering: Phase I fully precedes Phase II")
+            phase1_max_idx = int(phase1_indices.max())
+            phase2_min_idx = int(phase2_indices.min())
+            if phase2_min_idx < phase1_max_idx:
+                print(f"  ⚠ Temporal overlap: Phase II min index ({phase2_min_idx}) "
+                      f"< Phase I max index ({phase1_max_idx}).")
+            else:
+                print("  ✓ Temporal ordering: Phase I fully precedes Phase II based on indices")
         print("  ✓ Phase validation passed")
         return True
 

@@ -82,8 +82,8 @@ class TestT2InControlARL:
         chart.fit_phase1(X1, alpha=0.0027)
 
         result = chart.compute_arl(shift_size=0.0, n_simulations=2000)
-        # ARL₀ should be > 100 at least (exact is ~370 but MC variance is high with 2000 runs)
-        assert result["ARL"] > 100, f"ARL₀ = {result['ARL']}, expected ~370"
+        # ARL₀ should be > 300 at least (exact is ~370 but MC variance is high with 2000 runs)
+        assert result["ARL"] > 300, f"ARL₀ = {result['ARL']}, expected ~370"
 
 
 class TestT2IncreasesWithShift:

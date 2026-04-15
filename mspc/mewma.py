@@ -102,8 +102,8 @@ class MEWMAChart:
     def monitor(self, X_phase2: np.ndarray) -> Dict:
         """Run MEWMA monitoring on Phase II data.
 
-        Uses time-varying limits for the first 50 observations and
-        switches to the asymptotic limit afterwards.
+        Uses a constant asymptotic limit based on chi²(p) since the
+        time-varying factor is already divided into the statistic.
 
         Args:
             X_phase2: Phase II data (n × p).
@@ -252,6 +252,10 @@ class MEWMAChart:
         """
         lambdas = lambdas or [0.05, 0.10, 0.20, 0.30]
         print("\n── MEWMA λ Comparison ──")
+        if X_phase2.shape[1] != self._p:
+            raise ValueError(
+                f"Expected {self._p} features, got {X_phase2.shape[1]}"
+            )
         fig, ax = plt.subplots(figsize=(18, 6))
 
         for lam in lambdas:

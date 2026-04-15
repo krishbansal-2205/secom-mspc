@@ -76,7 +76,7 @@ class ARLSimulator:
             ucl_t2 = t2_chart.ucl_phase2_F
             for s in range(n_sim):
                 for rl in range(1, max_rl + 1):
-                    x = L @ rng.randn(p) + mu_shift
+                    x = L @ rng.randn(p) + t2_chart.mean_vector + mu_shift
                     diff = x - t2_chart.mean_vector  # subtract Phase I mean
                     t2_val = float(diff @ t2_chart.cov_inv @ diff)
                     if t2_val > ucl_t2:
@@ -92,8 +92,9 @@ class ARLSimulator:
             for s in range(n_sim):
                 Z_prev = np.zeros(p)
                 for rl in range(1, max_rl + 1):
-                    x = L @ rng.randn(p) + mu_shift
-                    Z_curr = lam * x + (1 - lam) * Z_prev
+                    x = L @ rng.randn(p) + mewma_chart.mean_vector + mu_shift
+                    deviation = x - mewma_chart.mean_vector
+                    Z_curr = lam * deviation + (1 - lam) * Z_prev
                     factor = (lam / (2 - lam)) * (1 - (1 - lam) ** (2 * rl))
                     inv_factor = 1.0 / max(factor, 1e-15)
                     t2_m = float(inv_factor * Z_curr @ mewma_chart.cov_inv @ Z_curr)

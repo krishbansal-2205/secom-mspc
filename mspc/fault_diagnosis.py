@@ -38,7 +38,7 @@ class FaultDiagnosisEngine:
     def diagnose_signal(
         self,
         x_signal: np.ndarray,
-        X_phase1: np.ndarray,
+        chart,
         t2_value: float,
         ucl: float,
         feature_names: List[str],
@@ -68,9 +68,9 @@ class FaultDiagnosisEngine:
         """
         x = np.asarray(x_signal, dtype=np.float64).ravel()
         p = len(x)
-        # Use Phase I statistics directly for consistency with the chart
-        mu = X_phase1.mean(axis=0) if X_phase1.ndim == 2 else np.zeros(p)
-        cov = np.cov(X_phase1, rowvar=False) if X_phase1.ndim == 2 else np.eye(p)
+        # Use Phase I statistics directly from the chart
+        mu = chart.mean_vector
+        cov = chart.cov_matrix
         std = np.sqrt(np.diag(cov) + 1e-12)
 
         # Step 1 – MYT decomposition using parameter slices (not re-estimation)

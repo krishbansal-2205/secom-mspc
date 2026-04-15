@@ -218,7 +218,7 @@ def run_pipeline(
         phase_mgr = PhaseManager()
         phases = phase_mgr.setup_phases(X_pca, y, timestamps)
         phase_mgr.validate_phase_separation(
-            phases["phase1_indices"], phases["phase2_indices"], np.asarray(y)
+            phases["phase1_indices"], phases["phase2_indices"], np.asarray(y), timestamps
         )
         phase_mgr.plot_phase_timeline(
             timestamps, y, phases["phase1_indices"], phases["phase2_indices"]
@@ -309,7 +309,7 @@ def run_pipeline(
             x_signal = phases["X_phase2"][obs_id]
             t2_val = float(results_df.loc[first_tp, "t2_value"])
             fd_result = diag.diagnose_signal(
-                x_signal, phases["X_phase1"],
+                x_signal, t2_chart,
                 t2_val, t2_chart.ucl_phase2_F,
                 pc_names,
                 original_feature_names=feature_names_processed,

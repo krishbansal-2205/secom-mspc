@@ -188,6 +188,7 @@ class SECOMCleaner:
             AssertionError: If any NaN remains after imputation.
         """
         self.imputer = SimpleImputer(strategy=self.cfg.imputation_strategy)
+        self._imputer_feature_names = list(X.columns)
         arr = self.imputer.fit_transform(X)
         X_out = pd.DataFrame(arr, columns=X.columns, index=X.index)
         assert X_out.isna().sum().sum() == 0, "NaN survived imputation!"
@@ -359,7 +360,7 @@ class SECOMCleaner:
             # Align columns to exactly what imputer expects, padding
             # any missing features with NaN so transform() gets the
             # correct number of columns.
-            expected = list(self.imputer.feature_names_in_) if hasattr(self.imputer, "feature_names_in_") else list(X_new.columns)
+            expected = self._imputer_feature_names if hasattr(self, "_imputer_feature_names") else list(X_new.columns)
             X_aligned = pd.DataFrame(
                 index=X_new.index, columns=expected, dtype=np.float64
             )

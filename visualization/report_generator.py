@@ -43,7 +43,7 @@ class ReportGenerator:
             with open(path, "rb") as fh:
                 b64 = base64.b64encode(fh.read()).decode()
             return f"data:image/png;base64,{b64}"
-        except FileNotFoundError:
+        except (FileNotFoundError, OSError):
             return ""
 
     # ─────────────────────────────────────────────────────────────────

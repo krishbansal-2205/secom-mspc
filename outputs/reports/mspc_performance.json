@@ -12,27 +12,27 @@
     "auc_roc": 0.269
   },
   "MEWMA": {
-    "TP": 104,
+    "TP": 102,
     "TN": 0,
     "FP": 586,
-    "FN": 0,
-    "sensitivity": 1.0,
+    "FN": 2,
+    "sensitivity": 0.9808,
     "specificity": 0.0,
-    "precision": 0.1507,
-    "f1": 0.262,
+    "precision": 0.1483,
+    "f1": 0.2576,
     "false_alarm_rate": 1.0,
     "auc_roc": 0.1357
   },
   "Combined": {
-    "TP": 104,
+    "TP": 102,
     "TN": 0,
     "FP": 586,
-    "FN": 0,
-    "sensitivity": 1.0,
+    "FN": 2,
+    "sensitivity": 0.9808,
     "specificity": 0.0,
-    "precision": 0.1507,
-    "f1": 0.262,
+    "precision": 0.1483,
+    "f1": 0.2576,
     "false_alarm_rate": 1.0,
-    "auc_roc": 0.269
+    "auc_roc": 0.1357
   }
 }

@@ -88,7 +88,8 @@ class SECOMPCAEngine:
                   f"{np.abs(col_means).max():.3f}")
 
         # 2 – full PCA
-        n_max = min(X.shape[0], X.shape[1])
+        # Prevent rank deficiency when n_samples == n_features
+        n_max = min(X.shape[0], X.shape[1]) - 1
         self.pca_full = PCA(n_components=n_max, random_state=self.cfg.random_seed)
         self.pca_full.fit(X)
         self.explained_variance_ratio = self.pca_full.explained_variance_ratio_
@@ -101,7 +102,7 @@ class SECOMPCAEngine:
             print(f"  {int(target*100)}% variance → {n} components ({reduction:.0f}% reduction)")
 
         self.n_components = int(
-            np.searchsorted(self.cumulative_variance, self.cfg.selected_variance) + 1
+            np.argmax(self.cumulative_variance >= self.cfg.selected_variance) + 1
         )
 
         # 4 – refit with optimal n

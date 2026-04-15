@@ -379,7 +379,7 @@ class HotellingT2Chart:
         # Build shifted mean
         shift_dir = np.zeros(p)
         shift_dir[0] = 1.0  # shift along first PC
-        mu_shifted = shift_size * shift_dir
+        mu_shifted = self.mean_vector + shift_size * shift_dir
 
         L = np.linalg.cholesky(self.cov_matrix + 1e-10 * np.eye(p))
 

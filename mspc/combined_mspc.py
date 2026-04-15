@@ -89,7 +89,7 @@ class CombinedMSPCSystem:
         # Normalised combined score for AUC computation
         df["combined_score"] = np.maximum(
             df["t2_value"] / df["t2_ucl"],
-            df["mewma_value"] / df["mewma_ucl"]
+            df["mewma_value"] / np.maximum(df["mewma_ucl"], 1e-9)
         )
 
         if y_true is not None:

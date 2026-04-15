@@ -12,6 +12,7 @@ import os
 import sys
 from datetime import datetime
 from typing import Any, Dict, Optional
+import pandas as pd
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from config import config
@@ -174,7 +175,7 @@ class ReportGenerator:
         # Section 6 – ML Models
         html_parts.append('<section id="ml-models">')
         html_parts.append("<h2>6. ML Model Results</h2>")
-        if ml_comp is not None and hasattr(ml_comp, "to_html"):
+        if ml_comp is not None and isinstance(ml_comp, pd.DataFrame):
             html_parts.append(ml_comp.to_html(classes="table table-sm table-bordered", index=False))
         html_parts.append(self._img_tag(os.path.join(model_dir, "roc_curves.png"),
                                         "ROC curves"))

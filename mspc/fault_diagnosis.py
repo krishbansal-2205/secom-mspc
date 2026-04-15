@@ -68,11 +68,12 @@ class FaultDiagnosisEngine:
         """
         x = np.asarray(x_signal, dtype=np.float64).ravel()
         p = len(x)
-        mu = X_phase1.mean(axis=0)
-        cov = np.cov(X_phase1, rowvar=False)
+        # Use Phase I statistics directly for consistency with the chart
+        mu = X_phase1.mean(axis=0) if X_phase1.ndim == 2 else np.zeros(p)
+        cov = np.cov(X_phase1, rowvar=False) if X_phase1.ndim == 2 else np.eye(p)
         std = np.sqrt(np.diag(cov) + 1e-12)
 
-        # Step 1 – MYT decomposition
+        # Step 1 – MYT decomposition using parameter slices (not re-estimation)
         try:
             cov_inv = np.linalg.pinv(cov)
         except np.linalg.LinAlgError:

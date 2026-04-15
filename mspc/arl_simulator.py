@@ -77,7 +77,7 @@ class ARLSimulator:
             for s in range(n_sim):
                 for rl in range(1, max_rl + 1):
                     x = L @ rng.randn(p) + mu_shift
-                    diff = x  # mean is zero in PCA space
+                    diff = x - t2_chart.mean_vector  # subtract Phase I mean
                     t2_val = float(diff @ t2_chart.cov_inv @ diff)
                     if t2_val > ucl_t2:
                         t2_rls[s] = rl

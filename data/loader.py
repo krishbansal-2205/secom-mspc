@@ -144,7 +144,7 @@ class SECOMDataLoader:
             )
         except ValueError:
             labels_df["timestamp"] = pd.to_datetime(
-                labels_df["timestamp"], infer_datetime_format=True
+                labels_df["timestamp"], format="mixed", dayfirst=True
             )
 
         # Recode: -1→0 (Pass), +1→1 (Fail)

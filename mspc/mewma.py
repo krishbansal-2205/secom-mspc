@@ -82,10 +82,11 @@ class MEWMAChart:
         else:
             self.cov_inv = np.linalg.inv(self.cov_matrix)
 
-        # Asymptotic UCL  (Lowry et al. 1992 approach using chi-squared)
-        scaling = self.lam / (2 - self.lam)
+        # Asymptotic UCL (Lowry et al. 1992)
+        # Since the MEWMA statistic divides by the time-varying factor,
+        # it asymptotically follows chi²(p), so UCL = chi2.ppf(1-alpha, p).
         self.ucl_asymptotic = float(
-            sp_stats.chi2.ppf(1 - alpha, df=self._p) * scaling
+            sp_stats.chi2.ppf(1 - alpha, df=self._p)
         )
 
         print(f"\n  MEWMA Setup:")
@@ -131,22 +132,14 @@ class MEWMAChart:
             inv_factor = 1.0 / max(factor, 1e-15)
             t2_mewma[i] = float(inv_factor * Z[i] @ self.cov_inv @ Z[i])
 
-            # Time-varying UCL for i < 50
-            if i < 50:
-                ucl_array[i] = float(
-                    sp_stats.chi2.ppf(1 - self.cfg.alpha, df=p) * factor
-                )
-                # But use the simpler scaled approach:
-                ucl_array[i] = self.ucl_asymptotic * (
-                    (1 - (1 - lam) ** (2 * (i + 1)))
-                )
-            else:
-                ucl_array[i] = self.ucl_asymptotic
+            # UCL is constant chi²(p) since the statistic is already
+            # normalised by the time-varying factor.
+            ucl_array[i] = self.ucl_asymptotic
 
             Z_prev = Z[i].copy()
 
-        # For consistency at the asymptotic boundary
-        ucl_array[50:] = self.ucl_asymptotic
+        # All UCLs are the same constant
+        ucl_array[:] = self.ucl_asymptotic
 
         signals = t2_mewma > ucl_array
         signal_idx = np.where(signals)[0]
@@ -269,9 +262,8 @@ class MEWMAChart:
             chart._p = self._p
             chart._m = self._m
 
-            scaling = lam / (2 - lam)
             chart.ucl_asymptotic = float(
-                sp_stats.chi2.ppf(1 - self.cfg.alpha, df=self._p) * scaling
+                sp_stats.chi2.ppf(1 - self.cfg.alpha, df=self._p)
             )
 
             res = chart.monitor(X_phase2)

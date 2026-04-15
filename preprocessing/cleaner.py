@@ -208,6 +208,7 @@ class SECOMCleaner:
         Returns:
             DataFrame with clipped values.
         """
+        X = X.copy()
         k = self.cfg.outlier_iqr_multiplier
         total_clipped = 0
         for col in X.columns:
@@ -355,11 +356,18 @@ class SECOMCleaner:
 
         # 3. impute
         if self.imputer is not None:
-            # align columns to imputer
-            expected = self.imputer.feature_names_in_ if hasattr(self.imputer, "feature_names_in_") else X_new.columns
-            common = [c for c in expected if c in X_new.columns]
-            arr = self.imputer.transform(X_new[common])
-            X_new = pd.DataFrame(arr, columns=common, index=X_new.index)
+            # Align columns to exactly what imputer expects, padding
+            # any missing features with NaN so transform() gets the
+            # correct number of columns.
+            expected = list(self.imputer.feature_names_in_) if hasattr(self.imputer, "feature_names_in_") else list(X_new.columns)
+            X_aligned = pd.DataFrame(
+                index=X_new.index, columns=expected, dtype=np.float64
+            )
+            for c in expected:
+                if c in X_new.columns:
+                    X_aligned[c] = X_new[c].values
+            arr = self.imputer.transform(X_aligned)
+            X_new = pd.DataFrame(arr, columns=expected, index=X_new.index)
 
         # 4. clip
         for col in X_new.columns:

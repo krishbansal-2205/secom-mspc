@@ -153,7 +153,6 @@ class SECOMModelTrainer:
                 scale_pos_weight=spw,
                 random_state=self.cfg.random_seed,
                 eval_metric="logloss",
-                use_label_encoder=False,
             )
         except ImportError:
             print("  ⚠ XGBoost not installed – skipping.")

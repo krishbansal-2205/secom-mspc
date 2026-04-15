@@ -109,9 +109,11 @@ page = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.markdown("### Filters")
 show_labels = st.sidebar.checkbox("Show actual labels", value=True)
-lambda_val = st.sidebar.slider("MEWMA λ", 0.05, 0.50, float(config.mewma_lambda), 0.01)
-alpha_val = st.sidebar.slider("Alpha (false alarm rate)", 0.001, 0.01,
-                               float(config.alpha), 0.001, format="%.4f")
+st.sidebar.markdown("### Pipeline Parameters")
+st.sidebar.info(
+    f"**MEWMA λ:** {config.mewma_lambda}\n\n"
+    f"**Alpha (α):** {config.alpha}"
+)
 
 # System status
 results_df = load_mspc_results()

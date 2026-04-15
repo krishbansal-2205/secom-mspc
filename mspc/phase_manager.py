@@ -157,8 +157,15 @@ class PhaseManager:
                 f"{len(missing_fail)} Fail samples missing from Phase II"
             )
 
-        # Temporal ordering – Phase I max index < Phase II min index
-        # (allowance: some interleaving is fine if fail samples are mixed)
+        # Temporal ordering – warn if Phase II starts before Phase I ends
+        phase1_max_idx = int(phase1_indices.max())
+        phase2_min_idx = int(phase2_indices.min())
+        if phase2_min_idx < phase1_max_idx:
+            print(f"  ⚠ Temporal overlap: Phase II min index ({phase2_min_idx}) "
+                  f"< Phase I max index ({phase1_max_idx}). "
+                  f"Some Phase II observations precede Phase I observations in time.")
+        else:
+            print("  ✓ Temporal ordering: Phase I fully precedes Phase II")
         print("  ✓ Phase validation passed")
         return True
 

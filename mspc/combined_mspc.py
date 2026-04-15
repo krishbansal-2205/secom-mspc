@@ -86,6 +86,12 @@ class CombinedMSPCSystem:
         })
         df["combined_signal"] = df["t2_signal"] | df["mewma_signal"]
 
+        # Normalised combined score for AUC computation
+        df["combined_score"] = np.maximum(
+            df["t2_value"] / df["t2_ucl"],
+            df["mewma_value"] / df["mewma_ucl"]
+        )
+
         if y_true is not None:
             y_arr = np.asarray(y_true)
             df["true_label"] = y_arr
@@ -130,7 +136,7 @@ class CombinedMSPCSystem:
         for name, sig_col, val_col in [
             ("T2", "t2_signal", "t2_value"),
             ("MEWMA", "mewma_signal", "mewma_value"),
-            ("Combined", "combined_signal", "t2_value"),
+            ("Combined", "combined_signal", "combined_score"),
         ]:
             preds = results_df[sig_col].astype(int).values
             tp = int(((preds == 1) & (y == 1)).sum())
@@ -309,7 +315,7 @@ class CombinedMSPCSystem:
             ("Combined", "combined_signal"),
         ]):
             cm = confusion_matrix(y, results_df[sig_col].astype(int).values, labels=[0, 1])
-            ax_sub = fig.add_axes([0.55 + k * 0.16, 0.05, 0.14, 0.18])
+            ax_sub = fig.add_axes([0.52 + k * 0.155, 0.05, 0.13, 0.18])
             sns.heatmap(cm, annot=True, fmt="d", cmap="YlOrRd",
                         xticklabels=["Pass", "Fail"],
                         yticklabels=["Pass", "Fail"],

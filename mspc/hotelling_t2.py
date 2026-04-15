@@ -315,9 +315,9 @@ class HotellingT2Chart:
             mask = np.ones(p, dtype=bool)
             mask[j] = False
             x_sub = x[mask].reshape(1, -1)
-            X_sub = X_phase1[:, mask]
-            mu_sub = X_sub.mean(axis=0)
-            cov_sub = np.cov(X_sub, rowvar=False)
+            # Use stored Phase I parameters (slices), not re-estimation
+            mu_sub = self.mean_vector[mask]
+            cov_sub = self.cov_matrix[np.ix_(mask, mask)]
             try:
                 inv_sub = np.linalg.pinv(cov_sub)
             except np.linalg.LinAlgError:
@@ -343,10 +343,11 @@ class HotellingT2Chart:
         df = pd.DataFrame(records).sort_values("contribution", ascending=False)
         df.reset_index(drop=True, inplace=True)
 
-        print("\n  Variable       | Contribution | Contr%  | Std | Status")
-        print("  " + "─" * 58)
+        print("\n  Variable             | Contribution | Contr%  | Std | Status")
+        print("  " + "─" * 63)
         for _, row in df.head(10).iterrows():
-            print(f"  {row['variable']:<16} {row['contribution']:>10.3f}  "
+            var_name = str(row['variable'])[:20]
+            print(f"  {var_name:<20} {row['contribution']:>10.3f}  "
                   f"{row['contribution_pct']:>7.1f}%  "
                   f"{row['std_value']:>6.2f}  {row['status']}")
 
@@ -391,7 +392,7 @@ class HotellingT2Chart:
                 rl += 1
                 z = rng.randn(p)
                 x = L @ z + mu_shifted
-                diff = x - np.zeros(p)  # Phase I mean already centred
+                diff = x - self.mean_vector  # use stored Phase I mean
                 t2 = float(diff @ self.cov_inv @ diff)
                 if t2 > ucl:
                     break

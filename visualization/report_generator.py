@@ -108,7 +108,7 @@ class ReportGenerator:
             html_parts.append(f"<li><strong>MSPC Specificity:</strong> {combined.get('specificity', 'N/A')}</li>")
 
         ml_comp = all_results.get("ml_comparison")
-        if ml_comp is not None and len(ml_comp) > 0:
+        if isinstance(ml_comp, pd.DataFrame) and len(ml_comp) > 0:
             best = ml_comp.iloc[0] if hasattr(ml_comp, "iloc") else {}
             html_parts.append(f"<li><strong>Best ML Model:</strong> "
                               f"{best.get('model', 'N/A')} (AUC = {best.get('auc_roc', 'N/A')})</li>")

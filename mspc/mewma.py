@@ -83,11 +83,8 @@ class MEWMAChart:
             self.cov_inv = np.linalg.inv(self.cov_matrix)
 
         # Asymptotic UCL (Lowry et al. 1992)
-        # Since the MEWMA statistic divides by the time-varying factor,
-        # it asymptotically follows chi²(p), so UCL = chi2.ppf(1-alpha, p).
-        self.ucl_asymptotic = float(
-            sp_stats.chi2.ppf(1 - alpha, df=self._p)
-        )
+        # We use the configured mewma_L parameter for the theoretical limit.
+        self.ucl_asymptotic = float(self.cfg.mewma_L ** 2)
 
         print(f"\n  MEWMA Setup:")
         print(f"    λ (smoothing)        : {self.lam}")

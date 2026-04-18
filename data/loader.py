@@ -229,7 +229,7 @@ class SECOMDataLoader:
         df["day_of_week"] = ts.dt.dayofweek
         df["shift"] = pd.cut(
             ts.dt.hour, bins=[-1, 8, 16, 24], labels=[0, 1, 2]
-        ).astype(int)
+        ).cat.codes
         df["week_number"] = ts.dt.isocalendar().week.astype(int)
         df["is_weekend"] = (ts.dt.dayofweek >= 5).astype(int)
         df["production_sequence"] = np.arange(len(df))

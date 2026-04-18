@@ -192,12 +192,9 @@ class ExploratoryDataAnalysis:
         axes[2].set_title("Daily Production Volume", fontweight="bold")
 
         # Panel 4 – defect rate by shift
-        hours = ts.dt.hour
-        shifts = pd.cut(hours, bins=[-1, 8, 16, 24], labels=["Night", "Morning", "Evening"])
-        # Explicitly reset indices to prevent silent misalignment
-        y_reset = y.reset_index(drop=True)
-        shifts_reset = shifts.reset_index(drop=True)
-        shift_rate = y_reset.groupby(shifts_reset, observed=False).mean() * 100
+        tmp = pd.DataFrame({'y': y.values, 'hour': ts.dt.hour.values})
+        tmp['shift'] = pd.cut(tmp['hour'], bins=[-1, 8, 16, 24], labels=["Night", "Morning", "Evening"])
+        shift_rate = tmp.groupby('shift', observed=False)['y'].mean() * 100
         axes[3].bar(shift_rate.index.astype(str), shift_rate.values,
                      color=["#2c3e50", "#e67e22", "#8e44ad"])
         axes[3].set_ylabel("Defect rate (%)")

@@ -401,7 +401,7 @@ class SECOMCleaner:
 
         # 6. scale
         if self.scaler is not None:
-            arr = self.scaler.transform(X_new)
+            arr = self.scaler.transform(X_new[self.retained_features])
             X_new = pd.DataFrame(arr, columns=X_new.columns, index=X_new.index)
 
         return X_new

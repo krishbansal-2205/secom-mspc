@@ -113,9 +113,10 @@ class CombinedMSPCSystem:
         df["combined_signal"] = df["t2_signal"] | df["mewma_signal"]
 
         # Normalised combined score for AUC computation
+        df["mewma_norm_score"] = df["mewma_value"] / np.maximum(df["mewma_ucl"], 1e-9)
         df["combined_score"] = np.maximum(
             df["t2_value"] / df["t2_ucl"],
-            df["mewma_value"] / np.maximum(df["mewma_ucl"], 1e-9)
+            df["mewma_norm_score"]
         )
 
         if y_true is not None:
@@ -161,7 +162,7 @@ class CombinedMSPCSystem:
 
         for name, sig_col, val_col in [
             ("T2", "t2_signal", "t2_value"),
-            ("MEWMA", "mewma_signal", "mewma_value"),
+            ("MEWMA", "mewma_signal", "mewma_norm_score"),
             ("Combined", "combined_signal", "combined_score"),
         ]:
             preds = results_df[sig_col].astype(int).values

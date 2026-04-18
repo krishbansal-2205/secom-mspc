@@ -121,6 +121,8 @@ class AlertSystem:
                 "mewma_value": round(a.mewma_value, 2),
                 "alert_level": a.alert_level,
                 "true_label": a.true_label,
+                "top_contributors": a.top_contributors,
+                "recommendations": a.recommendations,
             })
         return pd.DataFrame(records)
 

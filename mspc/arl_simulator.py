@@ -70,6 +70,9 @@ class ARLSimulator:
         for delta in shift_sizes:
             mu_shift = delta * shift_dir
             print(f"\n  Shift = {delta}σ …", end=" ")
+            
+            # Reset Z for MEWMA here inside the shift loop
+            Z = np.zeros((n_sim, p))
 
             # ── T² ARL ──────────────────────────────────────────────
             t2_rls = np.ones(n_sim, dtype=int) * max_rl
@@ -80,7 +83,10 @@ class ARLSimulator:
                 if not np.any(active_t2):
                     break
                 n_active = active_t2.sum()
-                diff = rng.randn(n_active, p) @ L.T + mu_shift
+                z = rng.randn(n_active, p) @ L.T
+                data = z + t2_chart.mean_vector + mu_shift
+                diff = data - t2_chart.mean_vector
+                
                 t2_val = np.einsum('ij,jk,ik->i', diff, t2_chart.cov_inv, diff)
                 signal = t2_val > ucl_t2
                 
@@ -92,7 +98,7 @@ class ARLSimulator:
             # ── MEWMA ARL ───────────────────────────────────────────
             mewma_rls = np.ones(n_sim, dtype=int) * max_rl
             active_mewma = np.ones(n_sim, dtype=bool)
-            Z = np.zeros((n_sim, p))
+            # Z is already reset above for each shift iteration
             ucl_mewma = mewma_chart.ucl_asymptotic
             lam = mewma_chart.lam
             
@@ -100,7 +106,10 @@ class ARLSimulator:
                 if not np.any(active_mewma):
                     break
                 n_active = active_mewma.sum()
-                deviation = rng.randn(n_active, p) @ L.T + mu_shift
+                
+                z_mewma = rng.randn(n_active, p) @ L.T
+                data_mewma = z_mewma + mewma_chart.mean_vector + mu_shift
+                deviation = data_mewma - mewma_chart.mean_vector
                 
                 Z[active_mewma] = lam * deviation + (1 - lam) * Z[active_mewma]
                 

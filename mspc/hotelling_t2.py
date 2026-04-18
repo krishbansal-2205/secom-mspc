@@ -323,7 +323,7 @@ class HotellingT2Chart:
             except np.linalg.LinAlgError:
                 inv_sub = np.eye(p - 1)
             diff = x_sub - mu_sub
-            t2_minus_j = float(diff @ inv_sub @ diff.T)
+            t2_minus_j = float((diff @ inv_sub @ diff.T)[0, 0])
             contributions[j] = max(t2_full - t2_minus_j, 0.0)
 
         total = contributions.sum() + 1e-12
@@ -381,7 +381,9 @@ class HotellingT2Chart:
         shift_dir[0] = 1.0  # shift along first PC
         mu_shifted = self.mean_vector + shift_size * shift_dir
 
-        L = np.linalg.cholesky(self.cov_matrix + 1e-10 * np.eye(p))
+        min_eigval = np.linalg.eigvalsh(self.cov_matrix).min()
+        nugget = max(1e-8, -min_eigval + 1e-8) if min_eigval < 0 else 1e-10
+        L = np.linalg.cholesky(self.cov_matrix + nugget * np.eye(p))
 
         run_lengths = np.zeros(n_simulations, dtype=int)
         max_rl = 5000

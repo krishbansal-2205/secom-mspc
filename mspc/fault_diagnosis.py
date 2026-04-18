@@ -38,7 +38,7 @@ class FaultDiagnosisEngine:
     def diagnose_signal(
         self,
         x_signal: np.ndarray,
-        chart,
+        chart: "HotellingT2Chart",
         t2_value: float,
         ucl: float,
         feature_names: List[str],
@@ -66,6 +66,9 @@ class FaultDiagnosisEngine:
         Returns:
             Dictionary with contributions, alert level, and actions.
         """
+        if not hasattr(chart, 'mean_vector'):
+            raise TypeError("chart must be a fitted HotellingT2Chart")
+
         x = np.asarray(x_signal, dtype=np.float64).ravel()
         p = len(x)
         # Use Phase I statistics directly from the chart

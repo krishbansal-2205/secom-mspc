@@ -277,18 +277,19 @@ class SECOMModelTrainer:
 
         cv = TimeSeriesSplit(n_splits=self.cfg.cv_folds)
 
+        param_dist = {f"classifier__{k}": v for k, v in param_dist.items()}
         if not is_pipeline:
             # Wrap in SMOTE to prevent internal CV leakage
             search_model = Pipeline([
                 ("smote", SMOTE(random_state=self.cfg.random_seed)),
                 ("classifier", base_est)
             ])
-            param_dist = {f"classifier__{k}": v for k, v in param_dist.items()}
         else:
             search_model = model
-            param_dist = {f"classifier__{k}": v for k, v in param_dist.items()}
         # Cap n_iter at the actual number of parameter combinations
         # to avoid wasteful duplicate evaluations in small grids.
+        if not param_dist:
+            return model
         import functools, operator
         total_combos = functools.reduce(
             operator.mul, (len(v) for v in param_dist.values()), 1

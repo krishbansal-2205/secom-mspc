@@ -59,11 +59,22 @@ class AlertSystem:
         self.cfg = cfg or config
         self.alerts: List[Alert] = []
 
-    def generate_alerts(self, results_df: pd.DataFrame) -> List[Alert]:
+    def generate_alerts(
+        self,
+        results_df: pd.DataFrame,
+        diagnosis_engine=None,
+        chart=None,
+        feature_names=None,
+        X_phase2=None
+    ) -> List[Alert]:
         """Create alerts from combined MSPC results.
 
         Args:
             results_df: DataFrame from :class:`CombinedMSPCSystem.monitor`.
+            diagnosis_engine: Optional pre-initialised fault generator
+            chart: Reference control chart for limit calculations
+            feature_names: Base list mappings
+            X_phase2: Scoring Matrix mappings
 
         Returns:
             List of :class:`Alert` instances for signalled observations.
@@ -74,9 +85,11 @@ class AlertSystem:
             if not row.get("combined_signal", False):
                 continue
 
+            obs_id = int(row.get("observation_id", 0))
             t2_val = float(row.get("t2_value", 0))
             ucl = float(row.get("t2_ucl", 1))
             exceedance = (t2_val - ucl) / max(ucl, 1e-6) * 100
+            
             if exceedance > 200:
                 level = "CRITICAL"
             elif exceedance > 100:
@@ -86,19 +99,52 @@ class AlertSystem:
             else:
                 level = "LOW"
 
+            recs = [
+                "Inspect process parameters",
+                "Check sensor calibration",
+                "Review maintenance log",
+            ]
+            top_contribs = []
+
+            if diagnosis_engine is not None and chart is not None and feature_names is not None and X_phase2 is not None:
+                try:
+                    # Silence the detailed OCAP terminal print for batch rendering
+                    import sys, os
+                    old_stdout = sys.stdout
+                    sys.stdout = open(os.devnull, 'w')
+                    
+                    diag = diagnosis_engine.diagnose_signal(
+                        x_signal=X_phase2[obs_id],
+                        chart=chart,
+                        t2_value=t2_val,
+                        ucl=ucl,
+                        feature_names=feature_names,
+                    )
+                    
+                    sys.stdout.close()
+                    sys.stdout = old_stdout
+                    
+                    top_contribs = list(diag.get("contributions", {}).keys())[:3]
+                    top_pcs = diag.get("top_pcs", [])
+                    
+                    if len(top_pcs) > 0:
+                        recs.insert(0, f"Investigate sensors associated with {top_pcs[0][0]}")
+                    if len(top_pcs) > 1:
+                        recs.insert(1, f"Check process parameters for {top_pcs[1][0]}")
+                except Exception:
+                    # Suppress single-obs diagnosis crash and rely on default limits
+                    pass
+
             alert = Alert(
-                observation_id=int(row.get("observation_id", 0)),
+                observation_id=obs_id,
                 t2_value=t2_val,
                 t2_ucl=ucl,
                 mewma_value=float(row.get("mewma_value", 0)),
                 mewma_ucl=float(row.get("mewma_ucl", 0)),
                 alert_level=level,
                 true_label=int(row["true_label"]) if "true_label" in row and pd.notna(row["true_label"]) else None,
-                recommendations=[
-                    "Inspect process parameters",
-                    "Check sensor calibration",
-                    "Review maintenance log",
-                ],
+                top_contributors=top_contribs,
+                recommendations=recs,
             )
             self.alerts.append(alert)
 

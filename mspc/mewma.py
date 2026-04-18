@@ -82,9 +82,9 @@ class MEWMAChart:
         else:
             self.cov_inv = np.linalg.inv(self.cov_matrix)
 
-        # Asymptotic UCL (Lowry et al. 1992)
-        # We use the configured mewma_L parameter for the theoretical limit.
-        self.ucl_asymptotic = float(self.cfg.mewma_L ** 2)
+        # Asymptotic UCL via Monte Carlo Calibration
+        # Self-calibrates to hit target ARL0.
+        self.ucl_asymptotic = self._calibrate_ucl(target_arl0=self.cfg.target_arl0)
 
         print(f"\n  MEWMA Setup:")
         print(f"    λ (smoothing)        : {self.lam}")
@@ -92,6 +92,44 @@ class MEWMAChart:
         print(f"    Phase I size (m)     : {self._m}")
         print(f"    Asymptotic UCL       : {self.ucl_asymptotic:.4f}")
         return self
+
+    def _calibrate_ucl(self, target_arl0: int = 370, n_cal: int = 10000) -> float:
+        """Calibrate h² via Monte Carlo bisection to hit target ARL₀."""
+        rng = np.random.RandomState(self.cfg.random_seed)
+        
+        def evaluate_ucl(ucl_test: float) -> float:
+            rls = np.ones(n_cal, dtype=int) * 2000
+            active = np.ones(n_cal, dtype=bool)
+            Z = np.zeros((n_cal, self._p))
+            for rl in range(1, 2001):
+                if not np.any(active):
+                    break
+                n_act = active.sum()
+                x = rng.randn(n_act, self._p)
+                Z[active] = self.lam * x + (1 - self.lam) * Z[active]
+                factor = (self.lam / (2 - self.lam)) * (1 - (1 - self.lam) ** (2 * rl))
+                
+                t2 = np.sum(Z[active]**2, axis=1) / max(factor, 1e-15)
+                signal = t2 > ucl_test
+                if np.any(signal):
+                    sig_idx = np.where(active)[0][signal]
+                    rls[sig_idx] = rl
+                    active[sig_idx] = False
+            return float(np.mean(rls))
+
+        low, high = 5.0, np.clip(self._p * 4.0, 20.0, 200.0)
+        best_ucl = 12.25
+        print(f"  Calibrating MEWMA UCL for p={self._p}, λ={self.lam}...")
+        for _ in range(8):
+            mid = (low + high) / 2.0
+            arl = evaluate_ucl(mid)
+            if arl < target_arl0:
+                low = mid
+            else:
+                high = mid
+            best_ucl = mid
+            
+        return float(best_ucl)
 
     # =================================================================
     # Monitoring (Phase II)

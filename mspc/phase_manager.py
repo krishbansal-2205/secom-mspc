@@ -229,8 +229,10 @@ class PhaseManager:
         # Boundary line
         boundary = ts[phase1_indices[-1]]
         ax.axvline(boundary, ls="--", color="black", lw=1.5, label="Phase boundary")
-        ax.axvspan(ts[phase1_indices[0]], boundary, alpha=0.05, color="steelblue")
-        ax.axvspan(boundary, ts[phase2_indices[-1]], alpha=0.05, color="#55A868")
+        ts_min = ts.min()
+        ts_max = ts.max()
+        ax.axvspan(ts_min, ts_max, alpha=0.03, color="#55A868")  # entire range = monitored
+        ax.axvspan(ts_min, boundary, alpha=0.05, color="steelblue")  # Phase I overlaid
 
         ax.set_yticks([0, 0.5, 1.0])
         ax.set_yticklabels(["Phase I", "Phase II Pass", "Phase II Fail"])

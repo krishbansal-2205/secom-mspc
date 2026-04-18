@@ -156,9 +156,11 @@ class FaultDiagnosisEngine:
                 f"║   {i+1}. {pc:<5} - Contribution: {pct:>5.1f}%               ║")
         print("╠═══════════════════════════════════════════════════╣")
         print("║ Recommended Actions:                              ║")
-        print(
-            f"║   1. Investigate sensors associated with {top_pcs[0][0]:<8}║")
-        print(f"║   2. Check process parameters for {top_pcs[1][0]:<13}║")
+        if len(top_pcs) > 0:
+            print(
+                f"║   1. Investigate sensors associated with {top_pcs[0][0]:<8}║")
+        if len(top_pcs) > 1:
+            print(f"║   2. Check process parameters for {top_pcs[1][0]:<13}║")
         print("║   3. Review last maintenance log                  ║")
         print("╚═══════════════════════════════════════════════════╝")
 

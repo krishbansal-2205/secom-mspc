@@ -7,19 +7,24 @@ maps PC-space contributions back to original sensors, and produces
 an OCAP (Out-of-Control Action Plan) report.
 """
 
+from __future__ import annotations
+from config import config
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
 import os
 import sys
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from mspc.hotelling_t2 import HotellingT2Chart
 
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from config import config
 
 
 class FaultDiagnosisEngine:
@@ -55,7 +60,7 @@ class FaultDiagnosisEngine:
 
         Args:
             x_signal: Observation vector (PC scores, 1-D).
-            X_phase1: Phase I data for sub-model estimation.
+            chart: Fitted HotellingT2Chart instance.
             t2_value: The T² value for this observation.
             ucl: Current UCL.
             feature_names: PC names (e.g. ``["PC1", ..., "PCk"]``).
@@ -120,7 +125,8 @@ class FaultDiagnosisEngine:
             # importance = |loading| × contribution for each PC
             orig_importance = np.zeros(pca_loadings.shape[0])
             for j in range(p):
-                orig_importance += np.abs(pca_loadings[:, j]) * contributions[j]
+                orig_importance += np.abs(pca_loadings[:, j]
+                                          ) * contributions[j]
             top_idx = np.argsort(orig_importance)[-5:][::-1]
             top_original = [
                 {"sensor": original_feature_names[i],
@@ -140,15 +146,18 @@ class FaultDiagnosisEngine:
         print("║           FAULT DIAGNOSIS REPORT                  ║")
         print("╠═══════════════════════════════════════════════════╣")
         print(f"║ T² Value    : {t2_value:<10.4f} (UCL = {ucl:.4f})       ║")
-        print(f"║ Exceedance  : {exceedance:.1f}% above UCL                  ║")
+        print(
+            f"║ Exceedance  : {exceedance:.1f}% above UCL                  ║")
         print(f"║ Alert Level : {'⚠️  ' + alert:<40}║")
         print("╠═══════════════════════════════════════════════════╣")
         print("║ Top Contributing Components:                      ║")
         for i, (pc, pct) in enumerate(top_pcs[:3]):
-            print(f"║   {i+1}. {pc:<5} - Contribution: {pct:>5.1f}%               ║")
+            print(
+                f"║   {i+1}. {pc:<5} - Contribution: {pct:>5.1f}%               ║")
         print("╠═══════════════════════════════════════════════════╣")
         print("║ Recommended Actions:                              ║")
-        print(f"║   1. Investigate sensors associated with {top_pcs[0][0]:<8}║")
+        print(
+            f"║   1. Investigate sensors associated with {top_pcs[0][0]:<8}║")
         print(f"║   2. Check process parameters for {top_pcs[1][0]:<13}║")
         print("║   3. Review last maintenance log                  ║")
         print("╚═══════════════════════════════════════════════════╝")
@@ -205,7 +214,8 @@ class FaultDiagnosisEngine:
         # Panel 1 – contribution bars
         ax = axes[0]
         order = np.argsort(contributions)[::-1]
-        names = [feature_names[j] if j < len(feature_names) else f"Var{j}" for j in order]
+        names = [feature_names[j] if j < len(
+            feature_names) else f"Var{j}" for j in order]
         vals = contributions[order]
         pcts = vals / total * 100
 
@@ -218,11 +228,13 @@ class FaultDiagnosisEngine:
             else:
                 colours.append("steelblue")
 
-        ax.barh(range(len(names)), vals, color=colours, edgecolor="black", lw=0.5)
+        ax.barh(range(len(names)), vals, color=colours,
+                edgecolor="black", lw=0.5)
         ax.set_yticks(range(len(names)))
         ax.set_yticklabels(names, fontsize=8)
         ax.invert_yaxis()
-        ax.axvline(t2_value, ls="--", color="black", lw=1, label=f"T² = {t2_value:.2f}")
+        ax.axvline(t2_value, ls="--", color="black",
+                   lw=1, label=f"T² = {t2_value:.2f}")
         ax.set_xlabel("T² Contribution")
         ax.set_title("T² Contribution Chart", fontweight="bold")
         ax.legend(fontsize=8)
@@ -232,7 +244,8 @@ class FaultDiagnosisEngine:
         if std_values is not None:
             std_ord = std_values[order]
             col2 = ["crimson" if abs(s) > 3 else "steelblue" for s in std_ord]
-            ax2.barh(range(len(names)), std_ord, color=col2, edgecolor="black", lw=0.5)
+            ax2.barh(range(len(names)), std_ord,
+                     color=col2, edgecolor="black", lw=0.5)
             ax2.set_yticks(range(len(names)))
             ax2.set_yticklabels(names, fontsize=8)
             ax2.invert_yaxis()

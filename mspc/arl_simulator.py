@@ -62,7 +62,9 @@ class ARLSimulator:
         max_rl = 5000
 
         # Cholesky for data generation
-        L = np.linalg.cholesky(t2_chart.cov_matrix + 1e-10 * np.eye(p))
+        min_eigval = np.linalg.eigvalsh(t2_chart.cov_matrix).min()
+        nugget = max(1e-8, -min_eigval + 1e-8) if min_eigval < 0 else 1e-10
+        L = np.linalg.cholesky(t2_chart.cov_matrix + nugget * np.eye(p))
         shift_dir = np.zeros(p)
         shift_dir[0] = 1.0
 

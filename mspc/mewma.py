@@ -99,8 +99,7 @@ class MEWMAChart:
     def monitor(self, X_phase2: np.ndarray) -> Dict:
         """Run MEWMA monitoring on Phase II data.
 
-        Uses a constant asymptotic limit based on chi²(p) since the
-        time-varying factor is already divided into the statistic.
+       "Uses a constant asymptotic limit based on the Lowry (1992) mewma_L parameter."
 
         Args:
             X_phase2: Phase II data (n × p).
@@ -263,9 +262,7 @@ class MEWMAChart:
             chart._p = self._p
             chart._m = self._m
 
-            chart.ucl_asymptotic = float(
-                sp_stats.chi2.ppf(1 - self.cfg.alpha, df=self._p)
-            )
+            chart.ucl_asymptotic = float(self.cfg.mewma_L ** 2)
 
             res = chart.monitor(X_phase2)
             ax.plot(res["t2_mewma"], lw=0.7, label=f"λ={lam} (signals={res['signals'].sum()})")

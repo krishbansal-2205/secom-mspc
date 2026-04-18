@@ -319,7 +319,7 @@ class CombinedMSPCSystem:
         ax5 = fig.add_subplot(gs[3, 0])
         for col, label, colour in [
             ("t2_value", "T²", "steelblue"),
-            ("mewma_value", "MEWMA", "darkorange"),
+            ("mewma_norm_score", "MEWMA", "darkorange"),
         ]:
             try:
                 fpr, tpr, _ = roc_curve(y, results_df[col].values)
